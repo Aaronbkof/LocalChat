@@ -1,4 +1,5 @@
 import './style.css';
+import mammoth from "mammoth";
 
 function getUserInput() {
 
@@ -15,17 +16,37 @@ function getUserInput() {
 
     for (const file of allFiles) {
 
-      if (!file.name.endsWith(".txt")) {
+      if (!file.name.endsWith(".txt") && !file.name.endsWith(".docx")) {
         continue;
       }
 
-      // Create the file reader for this file
       const fileReader = new FileReader();
-      fileReader.onload = () => {
-        console.log(fileReader.result);
-        addMessageToHistory("Added File " + file.name, true);
-      };
-      fileReader.readAsText(file);
+
+      // Handle TXT files
+      if (file.name.endsWith(".txt")) {
+        fileReader.onload = function() {
+          console.log("TXT File Content:", fileReader.result);
+          addMessageToHistory("Added TXT File: " + file.name + "\n" + fileReader.result, true);
+        };
+        fileReader.readAsText(file);
+      }
+
+      // Handle DOCX files
+      else if (file.name.endsWith(".docx")) {
+        fileReader.onload = function(event) {
+          const arrayBuffer = event.target.result;
+          mammoth.extractRawText({ arrayBuffer })
+            .then(function(result) {
+              console.log("Extracted DOCX Text:", result.value);
+              addMessageToHistory("Added docx file: " + file.name, true);
+            })
+            .catch(function(err) {
+              console.error("Error processing DOCX file:", err);
+              addMessageToHistory("Error reading " + file.name, true);
+            });
+        };
+        fileReader.readAsArrayBuffer(file);
+      }
     }
 
     fileInput.value = null;
@@ -36,10 +57,10 @@ function getUserInput() {
 
   // Check if a message was sent
   const inputTextArea = document.getElementById("inputTextArea");
-  const userMessage = inputTextArea.value
+  const userMessage = inputTextArea.value.trim();
 
   // Add the user message to the history
-  if (userMessage != "") {
+  if (userMessage !== "") {
     addMessageToHistory(userMessage, true);
     inputTextArea.value = "";
   }
@@ -71,7 +92,7 @@ function updateFileCount() {
   for (const file of folderInput) {
 
     // Check if the file is a valid selectable target.
-    if (file.name.endsWith(".txt")) {
+    if (file.name.endsWith(".txt") || (file.name.endsWith(".docx"))) {
       fileCount++;
     }
   }
