@@ -2,7 +2,7 @@ import { createSignal, createEffect } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
 import './GeneralChat.css';
 
-import { parseDocxFileAsync, parseHTMLFileAsync, parseTxtFileAsync } from '../utils/FileReaders';
+import { parseDocxFileAsync, parseHTMLFileAsync, parseTxtFileAsync, parsePdfFileAsync } from '../utils/FileReaders';
 import { getChatHistory, saveChatHistory} from '../utils/ChatHistory';
 
 
@@ -89,6 +89,9 @@ function GeneralChat() {
         if (file.name.endsWith('.docx')) {
           content = await parseDocxFileAsync(file);
         }
+        if (file.name.endsWith('.pdf')){
+          content = await parsePdfFileAsync(file);
+        }
 
         if (content != "") {
           console.log("Read file " + file.name + ". Content: " + content);
@@ -130,10 +133,10 @@ function GeneralChat() {
           <textarea id="inputTextArea"></textarea>
           <div class="fileUploadContainer">
             <label for="fileInput" class="fileUploadLabel" title="Select one or more files to upload">Upload File/s</label>
-            <input type="file" id="fileInput" multiple accept=".txt, .html, .docx" onChange={updateFileCount} />
+            <input type="file" id="fileInput" multiple accept=".txt, .html, .docx, .pdf" onChange={updateFileCount} />
             <label for="folderInput" class="fileUploadLabel"
               title="Select a folder to upload all files (not supported on older browsers)">Upload Folder</label>
-            <input type="file" id="folderInput" webkitdirectory multiple accept=".txt, .html, .docx" onChange={updateFileCount} />
+            <input type="file" id="folderInput" webkitdirectory multiple accept=".txt, .html, .docx, .pdf" onChange={updateFileCount} />
             <label class="fileCount">{fileCount()} Files Selected</label>
           </div>
           <button onClick={getUserInput}>Send</button>

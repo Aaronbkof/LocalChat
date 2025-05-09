@@ -38,7 +38,6 @@ const newChat = () => {
   navigate(`/chat/${newId}`, { replace: true });
 };
 
-
 render(
   () => (
     <Router root={Layout}>

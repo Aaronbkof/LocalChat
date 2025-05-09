@@ -1,5 +1,9 @@
 import mammoth from "mammoth";
 
+// import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/build/pdf.min.mjs';
+// import pdfjsWorkerUrl   from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+// GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 /**
  * Takes a txt file and return the text within it.
@@ -98,5 +102,40 @@ export function parseDocxFileAsync(file) {
         });
     };
     fileReader.readAsArrayBuffer(file);
+  });
+}
+
+/**
+ * Takes a PDF file and returns the extracted text.
+ * @param {File} file - the PDF file
+ * @return {Promise<string>} the PDF file's contents
+ */
+export function parsePdfFileAsync(file) {
+  if (!file.name.endsWith('.pdf')) {
+    throw new Error("A non-PDF file was passed into parsePdfFileAsync().");
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const arrayBuffer = reader.result;
+        const loadingTask = getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+        resolve(fullText);
+      } catch (error) {
+        console.error("Error processing PDF file:", error);
+        reject(error);
+      }
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsArrayBuffer(file);
   });
 }

@@ -3,7 +3,10 @@ import { createSignal, createEffect } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
 import './GeneralChat.css';
 
-import { parseDocxFileAsync, parseHTMLFileAsync, parseTxtFileAsync } from '../utils/FileReaders';
+// pdf importer test
+//import { extractHtmlFromPdf } from '../utils/pdf_convert';
+
+import { parseDocxFileAsync, parseHTMLFileAsync, parseTxtFileAsync, parsePdfFileAsync } from '../utils/FileReaders';
 import { getChatHistory, saveChatHistory } from '../utils/ChatHistory';
 import { pathJoin } from '../utils/PathJoin';
 
@@ -155,7 +158,15 @@ function Summarize() {
     if (file.name.endsWith('.docx')) {
       fileContent = await parseDocxFileAsync(file);
     }
+    // for pdf handling
+    //if (file.name.endsWith('.pdf')) {
+    //  fileContent = await extractHtmlFromPdf(file);
+    //}
 
+    if (file.name.endsWith('.pdf')) {
+      fileContent = await parsePdfFileAsync(file);
+    }
+    
     addMessage("Summarize File: " + file.name, true);
     addFile(fileContent, file.name);
 
@@ -189,7 +200,7 @@ function Summarize() {
             <label for="folderInput" class="fileUploadLabel">Select Model</label>
             <input type="file" id="folderInput" webkitdirectory multiple onChange={setupModel} />
             <label for="fileInput" class="fileUploadLabel">Summarize File</label>
-            <input type="file" id="fileInput" accept=".txt, .html, .docx" onChange={summarizeFileInput} />
+            <input type="file" id="fileInput" accept=".txt, .html, .docx, .pdf" onChange={summarizeFileInput} />
             <label onClick={summarizeTextInput} class="fileUploadLabel">Summarize Text</label>
           </div>
         </div>
