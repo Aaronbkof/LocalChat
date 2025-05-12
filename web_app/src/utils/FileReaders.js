@@ -1,5 +1,10 @@
 import mammoth from "mammoth";
+import * as pdfjsLib from 'pdfjs-dist';
+// Import the worker as a URL
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
+// Set the worker source using the imported URL
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 /**
  * Takes a txt file and return the text within it.
@@ -99,4 +104,58 @@ export function parseDocxFileAsync(file) {
     };
     fileReader.readAsArrayBuffer(file);
   });
+}
+
+/**extracts all text from within a PDF*/
+export async function parsePDFFileAsync(file) {
+  if (!file.name.endsWith('.pdf')) throw new Error('Not a PDF file');
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const { items } = await page.getTextContent();
+    fullText += items.map(item => item.str).join(' ') + '\n\n';
+  }
+  return fullText;
+}
+
+/**
+ * Logs HTML snippets (canvas + text‐layer) for each PDF page.
+ */
+export async function logPdfAsHtml(file) {
+  if (!file.name.endsWith('.pdf')) {
+    console.error('Not a PDF:', file.name);
+    return;
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page        = await pdf.getPage(i);
+    const viewport    = page.getViewport({ scale: 1.0 });
+    const textContent = await page.getTextContent();
+
+    const canvasHTML = `<canvas width="${viewport.width}" height="${viewport.height}"></canvas>`;
+
+    let textLayerHTML = `<div class="textLayer" style="
+      position: relative;
+      width: ${viewport.width}px;
+      height: ${viewport.height}px;
+    ">`;
+    textContent.items.forEach(item => {
+      const [, , , , x, y] = item.transform;
+      textLayerHTML += `<span style="
+        position: absolute;
+        left: ${x}px;
+        top: ${y}px;
+        font-size: ${item.height}px;
+      ">${item.str}</span>`;
+    });
+    textLayerHTML += '</div>';
+
+    console.log(`── Page ${i} ──`);
+    console.log('Canvas HTML:', canvasHTML);
+    console.log('Text-Layer HTML:', textLayerHTML);
+  }
 }
