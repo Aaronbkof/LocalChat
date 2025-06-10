@@ -200,8 +200,13 @@ function Summarize() {
             </button>
           </div>
           <div class={styles.controlsRight}>
-            {tab() === "text" && (
-              <button onClick={summarizeTextInput} class={styles.sendButton}>Send</button>
+            {(tab() === "text" || tab() === "file") && (
+              <button 
+                onClick={tab() === "text" ? summarizeTextInput : summarizeFileInput} 
+                class={styles.sendButton}
+              >
+                Send
+              </button>
             )}
           </div>
         </div>
