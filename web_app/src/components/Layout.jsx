@@ -21,6 +21,9 @@ function Layout(props) {
   // hover state for mouse navigation of chats
   const [hoveredChatId, setHoveredChatId] = createSignal(null);
   
+  // state for dropdown menu
+  const [openMenuId, setOpenMenuId] = createSignal(null);
+  
   // updates the chat history
   createEffect(() => {
     let chatList = getChatHistories();
@@ -33,7 +36,7 @@ function Layout(props) {
   });
   
   const deleteChat = (chatId) => {
-    if (!confirm("are you sure you want to remove this history?")) return;
+    if (!confirm("Are you sure you want to delete this chat? This action cannot be undone.")) return;
 
     deleteChatHistory(chatId);
     setChatHistories(getChatHistories());
@@ -41,11 +44,12 @@ function Layout(props) {
     if (location.pathname.includes(chatId)) {
       navigate('/');
     }
+    setOpenMenuId(null); // Close menu after action
   };
 
   const deleteAllChats = () => {
-    if (!confirm("Are you sure you want to remove all chat histories.")) return;
-    if (!confirm("This is a confirmation check to ensure that this is really what you want to do.")) return;
+    if (!confirm("Are you sure you want to delete ALL chat histories? This action cannot be undone.")) return;
+    if (!confirm("Final confirmation: This will permanently delete all your chat data.")) return;
 
     deleteChatHistories();
     navigate('/');
@@ -57,6 +61,7 @@ function Layout(props) {
     setRenamingId(chatId);
     const chat = chatHistories().find(c => c.chatId === chatId);
     setNewTitle(chat?.title || chat.chatId);
+    setOpenMenuId(null); // Close menu when starting rename
   };
 
   // apply and save new title
@@ -65,6 +70,31 @@ function Layout(props) {
     setChatHistories(getChatHistories());
     setRenamingId(null);
   };
+
+  // this may need to be changed, the dropdown menu for chat histories is very messy and temporary.
+  // toggle dropdown menu
+  const toggleMenu = (chatId) => {
+    setOpenMenuId(openMenuId() === chatId ? null : chatId);
+  };
+
+  // close menu when clicking outside
+  const handleClickOutside = (e) => {
+    if (!e.target.closest(`.${styles.menuContainer}`)) {
+      setOpenMenuId(null);
+    }
+  };
+
+  // add click listener to close menu when clicking outside
+  createEffect(() => {
+    if (openMenuId()) {
+      document.addEventListener('click', handleClickOutside);
+    } else {
+      document.removeEventListener('click', handleClickOutside);
+    }
+    
+    // Cleanup
+    return () => document.removeEventListener('click', handleClickOutside);
+  });
 
   return (
     <>
@@ -93,9 +123,39 @@ function Layout(props) {
                     >
                       {chat.chatName}
                     </A>
-                    <div>
-                      <button onClick={() => startRenaming(chat.chatId)}>Rename</button>
-                      <button onClick={() => deleteChat(chat.chatId)}>Delete</button>
+                    <div class={styles.menuContainer}>
+                      <button 
+                        class={styles.menuButton}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleMenu(chat.chatId);
+                        }}
+                      >
+                        ⋯
+                      </button>
+                      <Show when={openMenuId() === chat.chatId}>
+                        <div class={styles.dropdown}>
+                          <button 
+                            class={styles.dropdownItem}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startRenaming(chat.chatId);
+                            }}
+                          >
+                            Rename
+                          </button>
+                          <button 
+                            class={styles.dropdownItem}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteChat(chat.chatId);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </Show>
                     </div>
                   </div>
                 }
@@ -113,7 +173,7 @@ function Layout(props) {
           }</For>
           <br/>
 
-          <button onClick={deleteAllChats}>Delete Chat History</button>
+          <button class={styles.deleteAllButton} onClick={deleteAllChats}>Delete All Chats</button>
           <br />
         </div>
         <div class="pageContainer">
